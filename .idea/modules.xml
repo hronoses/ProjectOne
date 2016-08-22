@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/ProjectOne.iml" filepath="$PROJECT_DIR$/.idea/ProjectOne.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../neural_dynamics/.idea/neural_dynamics.iml" filepath="$PROJECT_DIR$/../neural_dynamics/.idea/neural_dynamics.iml" />
+    </modules>
+  </component>
+</project>
