@@ -15,7 +15,7 @@ rates : Hz                                              # input rates
 '''
 
 Syn_model = '''
-dw/dt =  (w*(A-p)*(w>=0))/tau_w : 1
+dw/dt =  (w*(A-p)*(w>=0) + p*x_trace_pre)/tau_w : 1
 '''
 Pre_eq = '''
 g_ampa_post += w*ampa_max_cond
