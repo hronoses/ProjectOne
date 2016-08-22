@@ -15,15 +15,13 @@ rates : Hz                                              # input rates
 '''
 
 Syn_model = '''
-dw/dt =  (w*(A-p)*(w>=0) + 0.2*p*x_trace_pre)/tau_w : 1
+dw/dt =  (w*(A-p)*(w>=0) + p*x_trace_pre)/tau_w : 1
 '''
 Pre_eq = '''
 g_ampa_post += w*ampa_max_cond
 w = clip(w, 0, inf)
 '''
 Post_eq = '''
-
-
 '''
 
 N_input = 100
@@ -54,7 +52,7 @@ tau_AMPA = 2.*ms                # AMPA synaptic timeconstant
 E_AMPA = 0.*mV                  # reversal potential AMPA
 ampa_max_cond = 5.e-8*siemens
 
-A = 40
+A = 20
 
 w_max = 5
 tau_w = 100    # learning rate
@@ -69,20 +67,20 @@ w_matrix = np.zeros((len(stimulus), 200))
 w_matrix[S.i[:], 0] = S.w[:]
 ind=0
 
-input_word = 'synapse'
 import text_sense as ts
+input_word = 'synapse'
 text = ts.TextSense(N_input)
 schedule = text.get_schedule(input_word, 100, 300)
-# print stimulus.rates.get_item([4,5,2])
+schedule += text.get_schedule('second', 5000, 300)
+
 @network_operation(dt=50*ms)
 def update_input(t):
     global ind
-    stimulus.rates[10] = 1000*Hz
     stimulus.rates = 20*Hz
     # if 1000*ms < t < 2000*ms:
     #     stimulus.rates = 80*Hz
-    if 5000*ms < t < 7000*ms:
-        stimulus.rates = 0*Hz
+    # if 5000*ms < t < 7000*ms:
+    #     stimulus.rates = 0*Hz
     ind += 1
     try:
         w_matrix[S.i[:], ind] = S.w[:]
