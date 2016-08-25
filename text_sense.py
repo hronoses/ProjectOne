@@ -21,9 +21,9 @@ class TextSense:
                 if self.total_num_patterns != neuron_num:
                     raise 'error'
         except:
-            self.num_features = 5   # features per latter
+            self.num_features = 4   # features per latter
             self.total_num_features = 100   # total number of features
-            self.num_patterns = 10   # patterns per feature
+            self.num_patterns = 3   # patterns per feature
             self.total_num_patterns = neuron_num    # number of neurons
             self.features = self.gen_features()
             self.patterns = self.gen_patterns()
@@ -58,6 +58,7 @@ if __name__ == '__main__':
     t = TextSense(100)
     # print t.vocLet
     # print t.sense()
-    # print t.features['s']
-    # print t.patterns[5]
-    print t.get_schedule('synapse', 100,50)
+    print t.features['s']
+    print t.patterns[5]
+    print t.get_neurons_for('s')
+    # print t.get_schedule('synapse', 100,50)

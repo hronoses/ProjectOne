@@ -15,8 +15,11 @@ rates : Hz                                              # input rates
 '''
 
 Syn_model = '''
-dw/dt =  (w*(A-p)*(w>=0) + p*x_trace_pre)/tau_w : 1
+dw/dt =  (w*(((A-p)/10)**3))/tau_w_homeo + (((A-p))*x_trace_pre)/tau_w_hebb  : 1
 '''
+
+
+
 Pre_eq = '''
 g_ampa_post += w*ampa_max_cond
 w = clip(w, 0, inf)
@@ -52,10 +55,11 @@ tau_AMPA = 2.*ms                # AMPA synaptic timeconstant
 E_AMPA = 0.*mV                  # reversal potential AMPA
 ampa_max_cond = 5.e-8*siemens
 
-A = 20
+A = 50
 
 w_max = 5
-tau_w = 100    # learning rate
+tau_w_homeo = 10    # learning rate
+tau_w_hebb = 100    # learning rate
 # Init params
 w_init = 1
 
@@ -70,8 +74,8 @@ ind=0
 import text_sense as ts
 input_word = 'synapse'
 text = ts.TextSense(N_input)
-schedule = text.get_schedule(input_word, 100, 300)
-schedule += text.get_schedule('second', 5000, 300)
+schedule = text.get_schedule(input_word, 3000, 200)
+# schedule += text.get_schedule('second', 5000, 200)
 
 @network_operation(dt=50*ms)
 def update_input(t):
@@ -126,6 +130,7 @@ def plot_state(monitor, variable, neuron=0):
         plot(t[i], y[i], '-b', label='Neuron' + variable[i])
         xlabel('Time (ms)')
         ylabel(variable[i])
+        # ylim(ymax = max(y[i])+2, ymin = 0)
     show()
 
 
