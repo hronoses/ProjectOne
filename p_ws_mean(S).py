@@ -15,7 +15,7 @@ rates : Hz                                              # input rates
 '''
 
 Syn_model = '''
-dw/dt =  (w>=0.4)* ((w*((A-p)/5)**3)/tau_w_homeo + (((p-A))*x_trace_pre)/tau_w_hebb)  : 1
+dw/dt =  0* (((w+1/w)*(((A-p))**1))/tau_w_homeo + (((p-A))*x_trace_pre)/tau_w_hebb)  : 1
 '''
 
 # (w)*(w>=0.1)*
@@ -48,20 +48,20 @@ V_rest = -70.*mV
 V_thr = -55.*mV
 
 
-taux = 100*ms
+taux = 1000*ms
 gleak = 30.*nS                  # leak conductance
 C = 300.*pF                     # membrane capacitance
 tau_AMPA = 2.*ms                # AMPA synaptic timeconstant
 E_AMPA = 0.*mV                  # reversal potential AMPA
 ampa_max_cond = 5.e-8*siemens
 
-A = 40
+A = 20
 
 w_max = 5
 tau_w_homeo = 1000    # learning rate
 tau_w_hebb = 1000    # learning rate
 # Init params
-w_init = 0.5
+w_init = 0.1
 
 S.w = w_init   # init weight
 stimulus.rates = 50*Hz
@@ -71,8 +71,7 @@ input_word = 'sssss'
 text = ts.TextSense(N_input)
 schedule = []
 schedule = text.get_schedule(input_word, 500, 200, 60)
-schedule += text.get_schedule('aaaaa', 6000, 200, 60)
-schedule += text.get_schedule('sssss', 6000, 500, 0)
+# schedule += text.get_schedule('sssss', 6000, 200, 15)
 x_distrib = []
 
 @network_operation(dt=50*ms)
@@ -129,29 +128,42 @@ def plot_state(monitor, variable, neuron=0):
         # ylim(ymax = max(y[i])+2, ymin = 0)
     show()
 
-
+def create_t(tau, total_time):
+    time = [[0, 0]] * int(total_time/tau)
+    time[0] = [0, 0 + tau]
+    for i in range(int(total_time/tau)-1):
+        prev = time[i][1]
+        time[i+1] = [prev, prev + tau]
+    return time
 
 def plot_spikes():
     print 'Spikes per second '+str(len(spikemon.t)/simulation_time/Hz)
-
-    # for t in spikemon.t:
-    #     axvline(t/ms, ls='-', c='r', lw=1)
-    # show()
-
+    spikes = spikemon.t/ms
+    for i,s in enumerate(spikes[1:]):
+        print spikes[i]-spikes[i-1]
+    mean_rate = np.zeros((2, 20000/100))
+    for i, t in enumerate(create_t(100, 20000)):
+        mean_rate[0, i] = t[1]
+        mean_rate[1, i] = np.where((spikes >= t[0]) & (spikes <= t[1]))[0].size
+    plot(mean_rate[0], mean_rate[1], '-b', label='<S>')
+    plot(v_Mtr.t/ms, v_Mtr.p[0], '-r', label='p')
+    xlabel('time')
+    ylabel('mean firing rate')
+    legend(loc='upper right')
+    show()
 
 # print spikemon.num_spikes
-plot_state([v_Mtr, x_trace_Mtr, w_Mtr], ['p', 'x_trace', 'w'])
+# plot_state([v_Mtr, x_trace_Mtr, w_Mtr], ['p', 'x_trace', 'w'])
 #
 # for i in range(99):
 #     plot(w_Mtr.t/ms, w_Mtr.w[i], '-b', label='Str')
 # show()
 #
-imshow(w_Mtr.w[:])
-colorbar()
-xlabel('time')
-ylabel('w')
-title('Synaptic weight')
-show()
+# imshow(w_Mtr.w[:])
+# xlabel('time')
+# ylabel('w')
+# title('Synaptic weight')
+# show()
 plot_spikes()
 # hist(x_distrib,normed=True)
 # show()
