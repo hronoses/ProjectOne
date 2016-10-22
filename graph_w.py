@@ -11,12 +11,12 @@ def plot_graph(**kwargs):
 if __name__ == '__main__':
     tau_w_homeo = 1000    # learning rate
     tau_w_hebb = 1000
-    A = 70
+    A = 1
     w = 0.5
-    x = 5
-    beta = 7
+    x = 1
+    beta = 0.8
     # print plot_graph(A=A, w=w, tau_w_homeo=tau_w_homeo, tau_w_hebb=tau_w_hebb)
-    p = np.arange(0,150,0.1)
+    p = np.arange(0, 3, 0.1)
     dw = np.zeros(p.shape)
     plt.figure(facecolor='white')
     for i in range(10):

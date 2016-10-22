@@ -47,7 +47,7 @@ class TextSense:
         return list(itertools.chain.from_iterable([self.patterns[i] for i in self.features[latter]]))
 
     def get_schedule(self, word, start_time, time_duration, amplitude):
-        time = [[0, 0, '', 0]] * len(word)   # [start time, end time, latter]
+        time = [[0, 0, '', 0]] * len(word)   # [start time, end time, latter, amplitude]
         time[0] = [start_time, start_time + time_duration, word[0], amplitude]
         for i, latter in enumerate(word[1:]):
             prev = time[i][1]
@@ -56,19 +56,23 @@ class TextSense:
 
 if __name__ == '__main__':
     t = TextSense(100)
-    # print t.vocLet
-    # print t.sense()
-    # print t.features['s']
-    # print t.patterns[5]
-    # print t.get_neurons_for('s')
-    # print t.get_schedule('synapse', 100,50)
-
-    def create_t(tau, total_time):
-        time = [[0, 0]] * int(total_time/tau)
-        time[0] = [0, 0 + tau]
-        for i in range(int(total_time/tau)-1):
-            prev = time[i][1]
-            time[i+1] = [prev, prev + tau]
-        return time
-
-    print create_t(100,10000)
+    print t.vocLet
+    print t.sense()
+    print t.features['s']
+    print t.patterns[5]
+    print 'E'
+    print t.get_neurons_for('e')
+    print t.get_neurons_for('a')
+    print t.get_neurons_for('d')
+    for i in t.vocLet.iterkeys():
+        # print i
+        print set( t.get_neurons_for('o')) & set( t.get_neurons_for(i))
+    # def create_t(tau, total_time):
+    #     time = [[0, 0]] * int(total_time/tau)
+    #     time[0] = [0, 0 + tau]
+    #     for i in range(int(total_time/tau)-1):
+    #         prev = time[i][1]
+    #         time[i+1] = [prev, prev + tau]
+    #     return time
+    #
+    # print create_t(100,10000)

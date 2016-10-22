@@ -2,7 +2,7 @@ from brian2 import *
 
 # Neuron Model
 eqs_inputs = '''
-dp/dt = -p/tau_p :1                          # spike trace
+dp/dt = -p/tau_p   :1                          # spike trace
 rates : Hz                                              # input rates
 '''
 
