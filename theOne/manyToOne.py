@@ -17,7 +17,8 @@ rates : Hz                                              # input rates
 '''
 
 Syn_model = '''
-dw/dt =  (w_s-w)/tau_w + x_trace_pre*p*(w_max > w_s)/tau_hebb : 1
+
+dw/dt =  (w_s-w)/tau_w + x_trace_pre*p*(1-w_s)(w_max > w_s)/tau_hebb : 1
 dw_s/dt = (w-w_s)*M*1/tau_w_s +  w_s*(1-p_h/A)/tau_w_homeo : 1
 '''
 #
@@ -72,6 +73,7 @@ output_neuron.M =1
 w_init = 0.2
 S.w = w_init   # init weight
 S.w_s = w_init   # init weight
+# S.a = 1
 
 ##############
 # Input patterns
