@@ -61,12 +61,12 @@ if __name__ == '__main__':
     print t.features['s']
     print t.patterns[5]
     print 'E'
-    print t.get_neurons_for('e')
+    print t.get_neurons_for('-')
     print t.get_neurons_for('a')
     print t.get_neurons_for('d')
-    for i in t.vocLet.iterkeys():
+    # for i in t.vocLet.iterkeys():
         # print i
-        print set( t.get_neurons_for('o')) & set( t.get_neurons_for(i))
+        # print set( t.get_neurons_for('o')) & set( t.get_neurons_for(i))
     # def create_t(tau, total_time):
     #     time = [[0, 0]] * int(total_time/tau)
     #     time[0] = [0, 0 + tau]
