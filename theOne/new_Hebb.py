@@ -23,10 +23,10 @@ a += y2
 '''
 Post_eq = '''
 w += x_pre*(a-w_s)
-a += x2_pre
+a += x_pre
 '''
 N_input = 100
-Delay = 50
+Delay = 100
 one = NeuronGroup(N_input, eqs_inputs, threshold='ind == int(t/ms%Delay)', reset='x=1; x2=1')
 post = NeuronGroup(1, eqs, threshold='50 == int(t/ms%Delay)', reset='y=1; y2=1')
 
@@ -37,7 +37,7 @@ S.connect(i=range(N_input), j=0)
 taux = 10*ms
 tauy = 10*ms
 taux2 = 5*ms
-tauy2 = 50*ms
+tauy2 = 40*ms
 tau_hebb = 1
 w_s = 2
 

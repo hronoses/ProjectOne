@@ -5,8 +5,9 @@ eqs = '''
 dv/dt = (gleak*(V_rest-v) + g_ampa*(E_AMPA-v))/C: volt      # voltage
 dg_ampa/dt = -g_ampa/tau_AMPA : siemens                 # synaptic conductance
 dp/dt = -p/tau_p : 1                    # (+ S_i) average firing rate
+dp_slow/dt = -p/tau_p_slow : 1                    # (+ S_i) average firing rate
 dp_h/dt = -p_h/tau_p_h : 1                    # long average homeostatic firing rate
-
+dy/dt = -y/tau_y : 1                    # long average homeostatic firing rate
 '''
 
 eqs_inputs = '''
@@ -15,19 +16,19 @@ dx_s/dt = -x_s/taux_s :1                          # spike trace
 rates : Hz                                              # input rates
 '''
 
-# Syn_model = '''
-# da/dt = -a : 1
-# dw/dt =(w_s-w)/tau_w + x_trace_pre*p*(a-w_s)*(w_max > w_s)/tau_hebb : 1
-# dw_s/dt =(w-w_s)*1*1/tau_w_s +  w_s*(1-p_h/A)/tau_w_homeo : 1
-# '''
 Syn_model = '''
-dw/dt =(w_s-w)/tau_w + x_trace_pre*p*(w_max > w_s)/tau_hebb : 1
-dw_s/dt =(w-w_s)*1*1/tau_w_s +  w_s*(1-p_h/A)/tau_w_homeo : 1
+dw/dt =(w_s-w)/tau_w: 1
+dw_s/dt =(w-w_s)*1*1/tau_w_s +  w_s*(1-p_h/A)*(1-p_h/A)/tau_w_homeo : 1
 '''
 
 Pre_eq = '''
 g_ampa_post += w*ampa_max_cond
-
+w -= p/1000
+w = clip(w, 0, inf)
+w_s = clip(w_s, 0, inf)
+'''
+Post_eq = '''
+w += p_slow*x_trace_pre/1000
 w = clip(w, 0, inf)
 w_s = clip(w_s, 0, inf)
 '''
@@ -36,10 +37,10 @@ N_input = 100
 
 stimulus = NeuronGroup(N_input, eqs_inputs,
                        threshold='rand()<rates*dt',
-                       reset='x_trace += 1; x_s += 1',
+                       reset='x_trace = 1; x_s += 1',
                        name='input',
                        method='linear')
-output_neuron = NeuronGroup(1,  eqs, threshold='v>V_thr', reset='v=V_rest; p += 1; p_h += 1/(p_h+0.1)',
+output_neuron = NeuronGroup(1,  eqs, threshold='v>V_thr', reset='v=V_rest; p = 1; p_slow = 1;y += 1; p_h += 1',
                             name='post_neuron',
                             method='euler'
                             )
@@ -48,7 +49,7 @@ output_neuron = NeuronGroup(1,  eqs, threshold='v>V_thr', reset='v=V_rest; p += 
 # added 0.1 to prevent blow up if p_h goes to 0
 
 
-S = Synapses(stimulus, output_neuron, Syn_model, on_pre=Pre_eq)
+S = Synapses(stimulus, output_neuron, Syn_model, on_pre=Pre_eq, on_post=Post_eq)
 S.connect(i=range(N_input), j=0)
 
 
@@ -62,14 +63,18 @@ C = 300.*pF                     # membrane capacitance
 tau_AMPA = 2.*ms                # AMPA synaptic timeconstant
 E_AMPA = 0.*mV                  # reversal potential AMPA
 ampa_max_cond = 5.e-8*siemens
-tau_p = 50*ms
+tau_p = 20*ms
+tau_p_slow = 100*ms
 tau_p_h = 100*second
-taux = 10*ms
+tau_y = 100*ms
+taux = 20*ms
 taux_s = 1*second
-A = 1/(tau_p/second)     # 10 Hz is target firing rate. divided by tau to make A comperable to p
+A = 10*(tau_p_h/second)     # 10 Hz is target firing rate. divided by tau to make A comperable to p
 print 'A=' + str(A)
 
+stimulus.x_trace = 0
 output_neuron.p = 0
+output_neuron.p_slow = 0
 output_neuron.p_h = A   # set initial state as stable
 # output_neuron.M = 1
 #################
@@ -77,7 +82,8 @@ output_neuron.p_h = A   # set initial state as stable
 ##################
 tau_w = 5*second
 tau_w_s= 10*tau_w
-tau_w_homeo = 1000    # learning rate
+# temporally exclude homeo to test triplet rule
+tau_w_homeo = 10000    # learning rate
 tau_hebb = 100    # learning rate
 w_max = 5
 
@@ -94,7 +100,7 @@ import text_sense as ts
 text = ts.TextSense(N_input)
 schedule = []
 schedule = text.get_schedule(' ', 1, 1, 1)
-schedule += text.get_schedule('sss', 100, 100, 40)
+# schedule += text.get_schedule('sss'*100, 1000, 100, 40)
 # schedule += text.get_schedule('ssasdfcaewaewfdsgaehawfsasasdfadsffsagvcbhgjikddfs', 5000, 100, 40)
 
 @network_operation(dt=50*ms)
@@ -112,15 +118,16 @@ def update_input(t):
 ############
 # Connect monitors
 ##############
-spikemon = SpikeMonitor(output_neuron)
-post = StateMonitor(output_neuron, True, record=0)
+spikemon = SpikeMonitor(stimulus)
+post_spike = SpikeMonitor(output_neuron)
+post = StateMonitor(output_neuron, ('y', 'p_h'), record=0)
 x_trace_Mtr = StateMonitor(stimulus, 'x_trace', record=range(100))
-syn = StateMonitor(S, True, record=True, dt=50*ms)
+syn = StateMonitor(S, True, record=True, dt=1*ms)
 
 ##############
 #Simulaion params
 #############
-simulation_time = 50*second
+simulation_time = 3*second
 defaultclock.dt = 1*ms
 run(simulation_time, report='text')
 
@@ -136,15 +143,26 @@ def plot_spikes():
 print 'Total spikes: ' + str(spikemon.num_spikes)
 plot_spikes()
 
+
+
 pre_neuron = text.get_neurons_for('s')[0]
 
 fig = figure(facecolor='white')
-subplot(2, 1, 1)
-plot(post.t/ms, post.p[0], '-b', label='p')
+num_plot = 4
+subplot(num_plot, 1, 1)
+plot(spikemon.t/ms, spikemon.i, '.k')
+plot(post_spike.t/ms, post_spike.i, 'ro')
+xlabel('Time (ms)')
+ylabel('Neuron index')
+subplot(num_plot, 1, 2)
+plot(post.t/ms, post.y[0], '-b', label='y')
+# ylim([0,10])
+legend(loc='upper right')
+subplot(num_plot, 1, 3)
 plot(post.t/ms, post.p_h[0], '-r', label='p_h')
 xlabel('Time (ms)')
 legend(loc='upper right')
-subplot(2, 1, 2)
+subplot(num_plot, 1, 4)
 ax = gca()
 ax.get_yaxis().get_major_formatter().set_scientific(False)
 ax.ticklabel_format(useOffset=False)
@@ -155,14 +173,15 @@ legend(loc='upper right')
 show()
 
 figure(facecolor='white')
+
 imshow(syn.w_s[:], cmap="gist_yarg", interpolation='nearest', aspect='auto')
+# plot(np.ones(len(text.get_neurons_for('s'))),text.get_neurons_for('s'),'o')
 colorbar(format='%.5f')
 # xticks(np.arange(20)*50, fontsize=9)
 xlabel('time')
-ylabel('w')
+ylabel('ws')
 title('Synaptic weight')
 show()
-
 
 # hist(x_distrib,normed=True)
 # show()
