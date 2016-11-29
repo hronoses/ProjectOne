@@ -18,7 +18,7 @@ rates : Hz                                              # input rates
 
 Syn_model = '''
 dw/dt =(w_s-w)/tau_w: 1
-dw_s/dt =(w-w_s)*1*1/tau_w_s +  w_s*(1-p_h/A)*(1-p_h/A)/tau_w_homeo : 1
+dw_s/dt =(w-w_s)*1*1/tau_w_s +  w_s*(1-p_h/A)**3/tau_w_homeo : 1
 '''
 
 Pre_eq = '''
@@ -49,7 +49,7 @@ output_neuron = NeuronGroup(1,  eqs, threshold='v>V_thr', reset='v=V_rest; p = 1
 # added 0.1 to prevent blow up if p_h goes to 0
 
 
-S = Synapses(stimulus, output_neuron, Syn_model, on_pre=Pre_eq, on_post=Post_eq)
+S = Synapses(stimulus, output_neuron, Syn_model, on_pre=Pre_eq, on_post=Post_eq,method='euler')
 S.connect(i=range(N_input), j=0)
 
 
@@ -65,11 +65,11 @@ E_AMPA = 0.*mV                  # reversal potential AMPA
 ampa_max_cond = 5.e-8*siemens
 tau_p = 20*ms
 tau_p_slow = 100*ms
-tau_p_h = 100*second
-tau_y = 100*ms
+tau_p_h = 10*second
+tau_y = 1000*ms
 taux = 20*ms
 taux_s = 1*second
-A = 10*(tau_p_h/second)     # 10 Hz is target firing rate. divided by tau to make A comperable to p
+A = 10*(tau_p_h/second)     # 10 Hz is target firing rate.
 print 'A=' + str(A)
 
 stimulus.x_trace = 0
@@ -81,13 +81,14 @@ output_neuron.p_h = A   # set initial state as stable
 # Plasticity params
 ##################
 tau_w = 5*second
-tau_w_s= 10*tau_w
+tau_w_s= 5*tau_w
 # temporally exclude homeo to test triplet rule
-tau_w_homeo = 10000    # learning rate
-tau_hebb = 100    # learning rate
+tau_w_homeo = 20*second    # learning rate
+tau_hebb = 70*ms    # learning rate
 w_max = 5
 
 stimulus.rates = 1*Hz
+
 w_init = 0.25
 S.w = w_init   # init weight
 S.w_s = w_init   # init weight
@@ -100,20 +101,23 @@ import text_sense as ts
 text = ts.TextSense(N_input)
 schedule = []
 schedule = text.get_schedule(' ', 1, 1, 1)
-# schedule += text.get_schedule('sss'*100, 1000, 100, 40)
+stimulus.rates.set_item(text.get_neurons_for('s'), 20*Hz)
+# schedule += text.get_schedule('sss'*400, 1000, 100, 40)
 # schedule += text.get_schedule('ssasdfcaewaewfdsgaehawfsasasdfadsffsagvcbhgjikddfs', 5000, 100, 40)
 
 @network_operation(dt=50*ms)
 def update_input(t):
-    stimulus.rates = 1*Hz
-    # output_neuron.M = 1
-    # if 10000*ms < t < 10150*ms:
-    #     output_neuron.M = 100
-    # if 5000*ms < t < 7000*ms:
-    #     stimulus.rates = 0*Hz
-    for i in schedule:
-        if i[0] <= t/ms < i[1]:
-            stimulus.rates.set_item(text.get_neurons_for(i[2]), i[3]*Hz)
+    if t > 20*second:
+        stimulus.rates = 1*Hz
+#     # output_neuron.M = 1
+#     # if 10000*ms < t < 10150*ms:
+#     #     output_neuron.M = 100
+#     # if 5000*ms < t < 7000*ms:
+#     #     stimulus.rates = 0*Hz
+    ### it is very ineficient code/ it loops every dt in entire schedule
+#     for i in schedule:
+#         if i[0] <= t/ms < i[1]:
+#             stimulus.rates.set_item(text.get_neurons_for(i[2]), i[3]*Hz)
 
 ############
 # Connect monitors
@@ -127,7 +131,7 @@ syn = StateMonitor(S, True, record=True, dt=1*ms)
 ##############
 #Simulaion params
 #############
-simulation_time = 3*second
+simulation_time = 100*second
 defaultclock.dt = 1*ms
 run(simulation_time, report='text')
 
@@ -149,18 +153,20 @@ pre_neuron = text.get_neurons_for('s')[0]
 
 fig = figure(facecolor='white')
 num_plot = 4
-subplot(num_plot, 1, 1)
-plot(spikemon.t/ms, spikemon.i, '.k')
-plot(post_spike.t/ms, post_spike.i, 'ro')
-xlabel('Time (ms)')
-ylabel('Neuron index')
+# subplot(num_plot, 1, 1)
+# plot(spikemon.t/ms, spikemon.i, '.k')
+# plot(post_spike.t/ms, post_spike.i, 'ro')
+# xlabel('Time (ms)')
+# ylabel('Neuron index')
 subplot(num_plot, 1, 2)
 plot(post.t/ms, post.y[0], '-b', label='y')
+ylabel('y')
 # ylim([0,10])
-legend(loc='upper right')
+# legend(loc='upper right')
 subplot(num_plot, 1, 3)
 plot(post.t/ms, post.p_h[0], '-r', label='p_h')
-xlabel('Time (ms)')
+# xlabel('Time (ms)')
+ylabel('y_s')
 legend(loc='upper right')
 subplot(num_plot, 1, 4)
 ax = gca()
