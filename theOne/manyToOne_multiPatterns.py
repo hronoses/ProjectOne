@@ -23,12 +23,12 @@ dw_s/dt =(w-w_s)*1*1/tau_w_s +  w_s*(1-p_h/A)**3/tau_w_homeo : 1
 
 Pre_eq = '''
 g_ampa_post += w*ampa_max_cond
-w -= p/1000
+w -= p/hebb_rate
 w = clip(w, 0, inf)
 w_s = clip(w_s, 0, inf)
 '''
 Post_eq = '''
-w += p_slow*x_trace_pre/1000
+w += p_slow*x_trace_pre/hebb_rate
 w = clip(w, 0, inf)
 w_s = clip(w_s, 0, inf)
 '''
@@ -86,6 +86,7 @@ tau_w_s= 5*tau_w
 tau_w_homeo = 20*second    # learning rate
 tau_hebb = 70*ms    # learning rate
 w_max = 5
+hebb_rate = 300
 
 stimulus.rates = 1*Hz
 
@@ -101,23 +102,30 @@ import text_sense as ts
 text = ts.TextSense(N_input)
 schedule = []
 schedule = text.get_schedule(' ', 1, 1, 1)
-stimulus.rates.set_item(text.get_neurons_for('s'), 20*Hz)
-# schedule += text.get_schedule('sss'*400, 1000, 100, 40)
-# schedule += text.get_schedule('ssasdfcaewaewfdsgaehawfsasasdfadsffsagvcbhgjikddfs', 5000, 100, 40)
+# word = 'ssasdfcsessasewfdsgaeshawssssdfadsssagvscbhssgjiskdfs'
+# schedule += text.get_schedule(word, 100, 100, 20)
+freq = 40
+schedule += text.get_schedule('t', 100, 400, freq)
+schedule += text.get_schedule('s', 500, 400, freq)
+schedule += text.get_schedule('a', 1000, 400, freq)
+schedule += text.get_schedule('s', 1500, 400, freq)
+schedule += text.get_schedule('f', 2000, 400, freq)
+schedule += text.get_schedule('s', 2500, 400, freq)
+schedule += text.get_schedule('d', 3000, 400, freq)
+schedule += text.get_schedule('s', 4000, 400, freq)
 
 @network_operation(dt=50*ms)
 def update_input(t):
-    if t > 20*second:
-        stimulus.rates = 1*Hz
+    stimulus.rates = 1*Hz
 #     # output_neuron.M = 1
 #     # if 10000*ms < t < 10150*ms:
 #     #     output_neuron.M = 100
 #     # if 5000*ms < t < 7000*ms:
 #     #     stimulus.rates = 0*Hz
     ### it is very ineficient code/ it loops every dt in entire schedule
-#     for i in schedule:
-#         if i[0] <= t/ms < i[1]:
-#             stimulus.rates.set_item(text.get_neurons_for(i[2]), i[3]*Hz)
+    for i in schedule:
+        if i[0] <= t/ms < i[1]:
+            stimulus.rates.set_item(text.get_neurons_for(i[2]), i[3]*Hz)
 
 ############
 # Connect monitors
@@ -131,7 +139,7 @@ syn = StateMonitor(S, True, record=True, dt=1*ms)
 ##############
 #Simulaion params
 #############
-simulation_time = 100*second
+simulation_time = 140*second
 defaultclock.dt = 1*ms
 run(simulation_time, report='text')
 
@@ -152,28 +160,28 @@ plot_spikes()
 pre_neuron = text.get_neurons_for('s')[0]
 
 fig = figure(facecolor='white')
-num_plot = 4
+num_plot = 3
 # subplot(num_plot, 1, 1)
 # plot(spikemon.t/ms, spikemon.i, '.k')
 # plot(post_spike.t/ms, post_spike.i, 'ro')
 # xlabel('Time (ms)')
 # ylabel('Neuron index')
-subplot(num_plot, 1, 2)
+subplot(num_plot, 1, 1)
 plot(post.t/ms, post.y[0], '-b', label='y')
 ylabel('y')
 # ylim([0,10])
 # legend(loc='upper right')
-subplot(num_plot, 1, 3)
+subplot(num_plot, 1, 2)
 plot(post.t/ms, post.p_h[0], '-r', label='p_h')
 # xlabel('Time (ms)')
-ylabel('y_s')
-legend(loc='upper right')
-subplot(num_plot, 1, 4)
+ylabel('ys')
+# legend(loc='upper right')
+subplot(num_plot, 1, 3)
 ax = gca()
 ax.get_yaxis().get_major_formatter().set_scientific(False)
 ax.ticklabel_format(useOffset=False)
 plot(syn.t/ms, syn.w[pre_neuron], '-b', label='w')
-plot(syn.t/ms, syn.w_s[pre_neuron], '-r', label='w_s')
+plot(syn.t/ms, syn.w_s[pre_neuron], '-r', label='ws')
 xlabel('Time (ms)')
 legend(loc='upper right')
 show()
@@ -184,7 +192,7 @@ imshow(syn.w_s[:], cmap="gist_yarg", interpolation='nearest', aspect='auto')
 # plot(np.ones(len(text.get_neurons_for('s'))),text.get_neurons_for('s'),'o')
 colorbar(format='%.5f')
 # xticks(np.arange(20)*50, fontsize=9)
-xlabel('time')
+xlabel('Time (ms)')
 ylabel('ws')
 title('Synaptic weight')
 show()
