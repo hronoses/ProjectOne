@@ -11,33 +11,31 @@ Synapse model: spike increases g_ampa, no_plasticity
 '''
 
 
-
-
-
-
-
 eqs_neurons = '''
     dv/dt = (gleak*(V_rest-v) + I_ext + I_syn)/C: volt      # voltage
     I_ext : amp                                             # external current
     I_syn = g_ampa*(E_AMPA-v): amp                          # synaptic current
     dg_ampa/dt = -g_ampa/tau_AMPA : siemens                 # synaptic conductance
-    x:metre
-    y:metre
+    dp/dt = -p/tau_p : 1                    # (+ S_i) average firing rate
+    dp_h/dt = -p_h/tau_p_h : 1                    # long average homeostatic firing rate
+    dx_trace/dt = -x_trace/taux :1                          # spike trace
 '''
 
 
 eqs_inputs = '''
-    dv/dt = gleak*(V_rest-v)/C: volt                        # voltage
+    dx_trace/dt = -x_trace/taux :1                          # spike trace
     rates : Hz                                              # input rates
-    # selected_index : integer (shared)                       # active neuron
 '''
 
 Syn_model =('''
-            w:1                # synaptic weight (ampa synapse)
+            dw/dt =  (w_s-w)/tau_w + x_trace_pre*p*(w_max > w_s)/tau_hebb : 1
+dw_s/dt = (w-w_s)/tau_w_s +  w_s*(1-p_h/A)/tau_w_homeo : 1
             ''')
 
 Pre_eq = ('''
-            g_ampa_post += w*ampa_max_cond                                                             # increment synaptic conductance
+        g_ampa_post += w*ampa_max_cond
+        w = clip(w, 0, inf)
+        w_s = clip(w_s, 0, inf)                                                           # increment synaptic conductance
             ''')
 
 Post_eq = ('''
@@ -59,7 +57,6 @@ excitory = neurons[:N_exc]
 inhibitory = neurons[N_exc:N_exc + N_inh ]
 
 input = NeuronGroup(N_input, eqs_inputs, threshold='rand()<rates*dt',
-                    reset='v=V_rest',
                     method='linear')
 
 # Crating connections
@@ -89,12 +86,12 @@ EE_distal = Synapses(excitory, excitory,
 
 print 'Connecting Synapses ... '
 stimE.connect(condition='abs(5*i-j)<=15')
-IE.connect(condition='abs(5*i-j)<=2')
-EI.connect(condition='abs(i-5*j)<=2')
+# IE.connect(condition='abs(5*i-j)<=2')
+# EI.connect(condition='abs(i-5*j)<=2')
 EE_local.connect(condition='abs(i-j)<=4')
 EE_distal.connect(p=0.05)
 
-## pararms
+## Neural Dynamics
 V_rest = -70.*mV        # resting potential
 V_thresh = -55.*mV      # spiking threshold
 gleak = 30.*nS                  # leak conductance
@@ -102,21 +99,35 @@ C = 300.*pF                     # membrane capacitance
 tau_AMPA = 2.*ms                # AMPA synaptic timeconstant
 E_AMPA = 0.*mV                  # reversal potential AMPA
 
-ampa_max_cond = 1.e-8*siemens
-# Initial values
 input.rates = 50*Hz
 excitory.v = V_rest
 excitory.I_ext = 0.*amp
 excitory.v = V_rest
 
-init_weight = 0.5
+#Plasticity
+
+ampa_max_cond = 1.e-8*siemens
+tau_p = 50*ms
+tau_p_h = 100*second
+taux = 10*ms
+A = 10/(tau_p/second)     # 10 Hz is target firing rate. divided by tau to make A comperable to p
+tau_w = 1
+tau_w_s= 10
+tau_w_homeo = 10000    # learning rate
+tau_hebb = 100    # learning rate
+
+w_max = 5
+w_init = 0.5
 inh_init_weight = 0
 
-stimE.w = init_weight
+stimE.w = w_init
+stimE.w_s = w_init
 IE.w = -inh_init_weight
 EI.w = inh_init_weight
-EE_local.w = init_weight/5
-EE_distal.w = init_weight/2
+EE_local.w = w_init/5
+EE_local.w_s = w_init/5
+EE_distal.w = w_init/2
+EE_distal.w_s = w_init/2
 
 
 
